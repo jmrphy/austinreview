@@ -1,0 +1,99 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Fetch last 5 newsletter issues from Buttondown at build time
+interface ButtondownEmail {
+  id: string;
+  subject: string;
+  publish_date: string;
+  secondary_id: number;
+}
+
+let emails: ButtondownEmail[] = [];
+const apiKey = import.meta.env.BUTTONDOWN_API_KEY;
+
+if (apiKey) {
+  try {
+    const res = await fetch(
+      'https://api.buttondown.com/v1/emails?status=sent&ordering=-publish_date&page_size=5',
+      { headers: { Authorization: `Token ${apiKey}` } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      emails = data.results ?? [];
+    }
+  } catch {
+    // Silently fall back to placeholder
+  }
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+---
+
+<BaseLayout title="The Austin Review">
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <h1 class="masthead">The Austin Review</h1>
+      <p class="tagline">Letters and conversations from Austin, Texas</p>
+      <form
+        class="subscribe-form"
+        action="https://buttondown.com/api/emails/embed-subscribe/user0834"
+        method="post"
+        target="_blank"
+      >
+        <input type="email" name="email" placeholder="Your email" required />
+        <button type="submit">Subscribe</button>
+      </form>
+    </section>
+
+    <!-- Archive -->
+    <section class="archive">
+      <p class="section-label">Recent Issues</p>
+      {emails.length > 0 ? (
+        <ul class="archive-list">
+          {emails.map((email) => (
+            <li>
+              <a href={`https://buttondown.com/user0834/archive/${email.secondary_id}/`}>
+                {email.subject}
+              </a>
+              <span class="archive-date">{formatDate(email.publish_date)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul class="archive-list">
+          <li>
+            <a href="https://buttondown.com/user0834/archive/">Browse the archive</a>
+            <span class="archive-date">Issues published weekly</span>
+          </li>
+        </ul>
+      )}
+    </section>
+
+    <!-- Podcast -->
+    <section class="podcast">
+      <p class="section-label">Podcast</p>
+      <iframe
+        src="https://share.transistor.fm/e/austin-review/playlist"
+        width="100%"
+        height="390"
+        frameborder="no"
+        scrolling="no"
+        seamless
+      ></iframe>
+      <a class="podcast-link" href="https://feeds.transistor.fm/austin-review">RSS Feed &rarr;</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; {new Date().getFullYear()} The Austin Review</p>
+    </footer>
+  </main>
+</BaseLayout>

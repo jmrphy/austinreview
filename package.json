@@ -1,0 +1,13 @@
+{
+  "name": "austinreview",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev --port 5916",
+    "build": "astro build",
+    "preview": "astro preview --port 5916"
+  },
+  "dependencies": {
+    "astro": "^5.5.1"
+  }
+}
