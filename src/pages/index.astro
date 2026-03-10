@@ -23,10 +23,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <section class="archive">
       <p class="section-label">Recent Issues</p>
       <ul class="archive-list" id="archive-list">
-        <li>
-          <a href="https://buttondown.com/user0834/archive/">Browse the archive</a>
-          <span class="archive-date">Issues published weekly</span>
-        </li>
+        <li class="archive-loading"><span class="archive-date">Loading issues...</span></li>
       </ul>
     </section>
 
@@ -52,31 +49,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script>
+  const fallback = `<li><a href="https://buttondown.com/user0834/archive/">Browse the archive</a><span class="archive-date">Issues published weekly</span></li>`;
+
   async function loadIssues() {
+    const list = document.getElementById('archive-list');
+    if (!list) return;
+
     try {
       const res = await fetch('/api/issues.json');
-      if (!res.ok) return;
-      const { results } = await res.json();
-      if (!results || results.length === 0) return;
+      if (!res.ok) { list.innerHTML = fallback; return; }
 
-      const list = document.getElementById('archive-list');
-      if (!list) return;
+      const { results } = await res.json();
+      if (!results || results.length === 0) { list.innerHTML = fallback; return; }
 
       list.innerHTML = results
-        .map((email: { secondary_id: number; subject: string; publish_date: string }) => {
+        .map((email: { absolute_url: string; subject: string; publish_date: string }) => {
           const date = new Date(email.publish_date).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
           });
           return `<li>
-            <a href="https://buttondown.com/user0834/archive/${email.secondary_id}/">${email.subject}</a>
+            <a href="${email.absolute_url}">${email.subject}</a>
             <span class="archive-date">${date}</span>
           </li>`;
         })
         .join('');
     } catch {
-      // Keep fallback content
+      list.innerHTML = fallback;
     }
   }
 
