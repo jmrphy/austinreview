@@ -1,39 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-
-// Fetch last 5 newsletter issues from Buttondown at build time
-interface ButtondownEmail {
-  id: string;
-  subject: string;
-  publish_date: string;
-  secondary_id: number;
-}
-
-let emails: ButtondownEmail[] = [];
-const apiKey = import.meta.env.BUTTONDOWN_API_KEY;
-
-if (apiKey) {
-  try {
-    const res = await fetch(
-      'https://api.buttondown.com/v1/emails?status=sent&ordering=-publish_date&page_size=5',
-      { headers: { Authorization: `Token ${apiKey}` } }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      emails = data.results ?? [];
-    }
-  } catch {
-    // Silently fall back to placeholder
-  }
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
 ---
 
 <BaseLayout title="The Austin Review">
@@ -56,25 +22,12 @@ function formatDate(dateStr: string): string {
     <!-- Archive -->
     <section class="archive">
       <p class="section-label">Recent Issues</p>
-      {emails.length > 0 ? (
-        <ul class="archive-list">
-          {emails.map((email) => (
-            <li>
-              <a href={`https://buttondown.com/user0834/archive/${email.secondary_id}/`}>
-                {email.subject}
-              </a>
-              <span class="archive-date">{formatDate(email.publish_date)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <ul class="archive-list">
-          <li>
-            <a href="https://buttondown.com/user0834/archive/">Browse the archive</a>
-            <span class="archive-date">Issues published weekly</span>
-          </li>
-        </ul>
-      )}
+      <ul class="archive-list" id="archive-list">
+        <li>
+          <a href="https://buttondown.com/user0834/archive/">Browse the archive</a>
+          <span class="archive-date">Issues published weekly</span>
+        </li>
+      </ul>
     </section>
 
     <!-- Podcast -->
@@ -97,3 +50,35 @@ function formatDate(dateStr: string): string {
     </footer>
   </main>
 </BaseLayout>
+
+<script>
+  async function loadIssues() {
+    try {
+      const res = await fetch('/api/issues.json');
+      if (!res.ok) return;
+      const { results } = await res.json();
+      if (!results || results.length === 0) return;
+
+      const list = document.getElementById('archive-list');
+      if (!list) return;
+
+      list.innerHTML = results
+        .map((email: { secondary_id: number; subject: string; publish_date: string }) => {
+          const date = new Date(email.publish_date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+          return `<li>
+            <a href="https://buttondown.com/user0834/archive/${email.secondary_id}/">${email.subject}</a>
+            <span class="archive-date">${date}</span>
+          </li>`;
+        })
+        .join('');
+    } catch {
+      // Keep fallback content
+    }
+  }
+
+  loadIssues();
+</script>
